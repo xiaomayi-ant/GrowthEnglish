@@ -9,6 +9,7 @@ import {
   type SourceEntry,
 } from "@enpet/core";
 import { type ContentGenerator, DeterministicAnswerEvaluator } from "@enpet/evaluation";
+import { renderPracticeRecord, type PracticeRecord } from "@enpet/practice-records";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildApp, type EnPetApp } from "./app.js";
 
@@ -20,6 +21,7 @@ const baseConfig: AppConfig = {
   vocabFilePrefix: "english-words",
   vocabFormat: DEFAULT_VOCAB_FORMAT,
   databasePath: ":memory:",
+  practiceRecordsDir: "/tmp/enpet-test/learning-records",
   reportsDir: "/tmp/enpet-test/reports",
   reviewQueuePath: "/tmp/enpet-test/review-queue.md",
   newWordsPerDay: 6,
@@ -75,6 +77,88 @@ describe("API", () => {
   });
 
   afterEach(async () => app.close());
+
+  it("refreshes the real markdown vocabulary and joins validated practice by stable IDs", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "enpet-practice-e2e-"));
+    const vocabDir = path.join(root, "source-vocabulary");
+    const recordsDir = path.join(root, "learning-records");
+    await mkdir(vocabDir, { recursive: true });
+    await mkdir(recordsDir, { recursive: true });
+    const sourcePath = path.join(vocabDir, "english-words.md");
+    const source = [
+      "# My words", "", "| Word | Phonetic | Meaning |", "| --- | --- | --- |",
+      "| interested in | /ɪntrəstɪd/ | 对……感兴趣 |", "| work with | - | 与……合作 |", "",
+    ].join("\n");
+    await writeFile(sourcePath, source);
+    const record: PracticeRecord = {
+      schemaVersion: 1,
+      sessionId: "session-from-codex-1",
+      occurredAt: "2026-09-10T17:30:00-07:00",
+      status: "complete",
+      courseId: "workplace-english",
+      unitId: "project-updates",
+      focus: ["interested in"],
+      turns: [{
+        prompt: "Tell me about a project.",
+        response: "I am interested on the project.",
+        corrections: [{
+          original: "interested on",
+          corrected: "interested in",
+          explanation: "The preposition is in.",
+          hintLevel: "light",
+          attempts: [{ response: "I am interested in the project.", result: "recalled" }],
+        }],
+      }],
+      vocabularyAssessments: [{
+        vocabularyId: "f001-r002-c01",
+        expression: "interested in",
+        result: "recalled",
+        evidenceType: "spontaneous",
+        evidence: "I am interested in the project.",
+      }],
+      nextFocus: ["interested in"],
+    };
+    await writeFile(path.join(recordsDir, "session.md"), renderPracticeRecord(record));
+    const scoped = await buildTestApp({
+      ...baseConfig,
+      vocabDir,
+      vocabFormat: {
+        layout: "column",
+        separator: "<br>",
+        fieldOrder: ["word", "meaning", "phonetic"],
+        columns: { word: 1, meaning: 3, phonetic: 2 },
+      },
+      practiceRecordsDir: recordsDir,
+      databasePath: path.join(root, "enpet.sqlite3"),
+    });
+    try {
+      const refreshed = await scoped.inject({ method: "POST", url: "/api/practice/refresh" });
+      expect(refreshed.statusCode).toBe(200);
+      expect(refreshed.json().imported).toMatchObject({ files: 1, inserted: 2 });
+      expect(refreshed.json().records[0]).toMatchObject({
+        sessionId: "session-from-codex-1",
+        occurredAt: "2026-09-10T17:30:00-07:00",
+      });
+      const vocabulary = refreshed.json().vocabulary;
+      expect(vocabulary.find((entry: { id: string }) => entry.id === "f001-r002-c01").practice).toMatchObject({
+        status: "needs-practice",
+        evidenceCount: 1,
+      });
+      expect(vocabulary.find((entry: { word: string }) => entry.word === "work with").practice.status).toBe("unassessed");
+      expect(await readFile(sourcePath, "utf8")).toBe(source);
+      const second = await scoped.inject({ method: "POST", url: "/api/practice/refresh" });
+      expect(second.json().imported).toMatchObject({ inserted: 0, updated: 2 });
+      expect(second.json().records).toHaveLength(1);
+      await writeFile(path.join(recordsDir, "session.md"), "# An incomplete file");
+      const degraded = await scoped.inject({ method: "GET", url: "/api/practice/overview" });
+      expect(degraded.json().records).toHaveLength(1);
+      expect(degraded.json().errors).toHaveLength(1);
+      expect(degraded.json().lastCleanReadAt).toBeTruthy();
+    } finally {
+      await scoped.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 
   // 目录存在但还没有词库文件是首次使用的正常状态，不能当成失败
   it("reports an empty import instead of failing when the directory has no vocabulary files", async () => {

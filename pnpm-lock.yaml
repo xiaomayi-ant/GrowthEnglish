@@ -51,6 +51,9 @@ importers:
       '@enpet/evaluation':
         specifier: workspace:*
         version: link:../../packages/evaluation
+      '@enpet/practice-records':
+        specifier: workspace:*
+        version: link:../../packages/practice-records
       '@enpet/reporting':
         specifier: workspace:*
         version: link:../../packages/reporting

@@ -48,6 +48,7 @@ export interface PracticeFileError {
 export interface PracticeScanResult {
   records: PracticeRecord[];
   recordsByPath: Record<string, PracticeRecord>;
+  scannedPaths: string[];
   errors: PracticeFileError[];
   readAt: string;
   filesRead: number;
@@ -127,6 +128,7 @@ export async function scanPracticeRecords(root: string): Promise<PracticeScanRes
     return {
       records: [],
       recordsByPath: {},
+      scannedPaths: [],
       errors: [{
         path: root,
         code: "READ_FAILED",
@@ -169,6 +171,7 @@ export async function scanPracticeRecords(root: string): Promise<PracticeScanRes
     records: usable.map(({ record }) => record)
       .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt) || left.sessionId.localeCompare(right.sessionId)),
     recordsByPath: Object.fromEntries(usable.map(({ path: file, record }) => [file, record])),
+    scannedPaths: files,
     errors,
     readAt,
     filesRead: files.length,

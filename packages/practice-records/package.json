@@ -3,9 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "exports": {
-    ".": "./dist/index.js"
-  },
+  "exports": "./src/index.ts",
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit"
