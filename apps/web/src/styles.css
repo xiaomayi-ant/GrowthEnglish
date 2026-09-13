@@ -461,12 +461,11 @@ button:disabled {
   display: block;
   height: 100%;
   background: var(--green);
-  transition: width 180ms ease;
 }
 
 .context-section {
   padding: 20px 0 20px 20px;
-  border-left: 3px solid var(--blue);
+  border-top: 1px solid var(--border);
 }
 
 .section-heading span {
@@ -597,7 +596,7 @@ button:disabled {
   gap: 12px;
   margin-top: 8px;
   padding: 10px 12px;
-  border-left: 3px solid var(--blue);
+  border: 1px solid #c9e1e2;
   color: #263a4e;
   background: var(--blue-soft);
 }
@@ -613,7 +612,7 @@ button:disabled {
   gap: 4px;
   margin-top: 10px;
   padding: 10px 12px;
-  border-left: 3px solid var(--green);
+  border: 1px solid #c3e2dc;
   color: #234c35;
   background: var(--green-soft);
   font-size: 12px;
@@ -716,7 +715,7 @@ button:disabled {
   justify-content: space-between;
   min-height: 68px;
   padding: 12px 16px;
-  border-left: 3px solid;
+  border-top: 2px solid #b7dfdf;
   background: var(--surface);
 }
 
