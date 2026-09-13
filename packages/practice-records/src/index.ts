@@ -5,37 +5,57 @@ import { z } from "zod";
 const hintLevelSchema = z.enum(["none", "light", "direct"]);
 const evidenceTypeSchema = z.enum(["spontaneous", "rephrased", "read-aloud", "transcript-only"]);
 
-export const PracticeRecordSchema = z.object({
-  schemaVersion: z.literal(1),
-  sessionId: z.string().min(1).max(160),
-  occurredAt: z.string().datetime({ offset: true }),
-  status: z.enum(["complete", "partial"]),
-  courseId: z.string().min(1).max(120),
-  unitId: z.string().min(1).max(120),
-  focus: z.array(z.string().min(1)).max(20).default([]),
-  turns: z.array(z.object({
-    prompt: z.string().min(1).max(5000),
-    response: z.string().max(10000),
-    corrections: z.array(z.object({
-      original: z.string().min(1).max(5000),
-      corrected: z.string().min(1).max(5000),
-      explanation: z.string().max(3000).default(""),
-      hintLevel: hintLevelSchema,
-      attempts: z.array(z.object({
-        response: z.string().max(10000),
-        result: z.enum(["recalled", "needs-practice"]),
-      })).max(20).default([]),
-    })).max(20).default([]),
-  })).max(100),
-  vocabularyAssessments: z.array(z.object({
-    vocabularyId: z.string().min(1).max(200),
-    expression: z.string().min(1).max(500),
-    result: z.enum(["recalled", "partial", "missed"]),
-    evidenceType: evidenceTypeSchema,
-    evidence: z.string().min(1).max(5000),
-  })).max(100),
-  nextFocus: z.array(z.string().min(1)).max(20).default([]),
-}).strict();
+export const PracticeRecordSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    sessionId: z.string().min(1).max(160),
+    occurredAt: z.string().datetime({ offset: true }),
+    status: z.enum(["complete", "partial"]),
+    courseId: z.string().min(1).max(120),
+    unitId: z.string().min(1).max(120),
+    focus: z.array(z.string().min(1)).max(20).default([]),
+    turns: z
+      .array(
+        z.object({
+          prompt: z.string().min(1).max(5000),
+          response: z.string().max(10000),
+          corrections: z
+            .array(
+              z.object({
+                original: z.string().min(1).max(5000),
+                corrected: z.string().min(1).max(5000),
+                explanation: z.string().max(3000).default(""),
+                hintLevel: hintLevelSchema,
+                attempts: z
+                  .array(
+                    z.object({
+                      response: z.string().max(10000),
+                      result: z.enum(["recalled", "needs-practice"]),
+                    }),
+                  )
+                  .max(20)
+                  .default([]),
+              }),
+            )
+            .max(20)
+            .default([]),
+        }),
+      )
+      .max(100),
+    vocabularyAssessments: z
+      .array(
+        z.object({
+          vocabularyId: z.string().min(1).max(200),
+          expression: z.string().min(1).max(500),
+          result: z.enum(["recalled", "partial", "missed"]),
+          evidenceType: evidenceTypeSchema,
+          evidence: z.string().min(1).max(5000),
+        }),
+      )
+      .max(100),
+    nextFocus: z.array(z.string().min(1)).max(20).default([]),
+  })
+  .strict();
 
 export type PracticeRecord = z.infer<typeof PracticeRecordSchema>;
 
@@ -92,9 +112,11 @@ export function parsePracticeRecord(markdown: string): PracticeRecord {
   const payload = markdown.slice(start + startMarker.length, end);
   const match = payload.match(/```json\s*([\s\S]*?)\s*```/);
   if (!match) throw new Error("记录区缺少 JSON 数据块");
+  const jsonPayload = match[1];
+  if (jsonPayload === undefined) throw new Error("记录区 JSON 数据为空");
   let decoded: unknown;
   try {
-    decoded = JSON.parse(match[1]!);
+    decoded = JSON.parse(jsonPayload);
   } catch (cause) {
     throw new Error(`JSON 格式错误：${cause instanceof Error ? cause.message : String(cause)}`);
   }
@@ -129,11 +151,18 @@ export async function scanPracticeRecords(root: string): Promise<PracticeScanRes
       records: [],
       recordsByPath: {},
       scannedPaths: [],
-      errors: [{
-        path: root,
-        code: "READ_FAILED",
-        message: code === "ENOENT" ? "记录目录不存在" : cause instanceof Error ? cause.message : String(cause),
-      }],
+      errors: [
+        {
+          path: root,
+          code: "READ_FAILED",
+          message:
+            code === "ENOENT"
+              ? "记录目录不存在"
+              : cause instanceof Error
+                ? cause.message
+                : String(cause),
+        },
+      ],
       readAt,
       filesRead: 0,
     };
@@ -154,22 +183,32 @@ export async function scanPracticeRecords(root: string): Promise<PracticeScanRes
   }
 
   const occurrences = new Map<string, string[]>();
-  for (const item of parsed) occurrences.set(item.record.sessionId, [...(occurrences.get(item.record.sessionId) ?? []), item.path]);
+  for (const item of parsed)
+    occurrences.set(item.record.sessionId, [
+      ...(occurrences.get(item.record.sessionId) ?? []),
+      item.path,
+    ]);
   const duplicateIds = new Set<string>();
   for (const [sessionId, paths] of occurrences) {
     if (paths.length < 2) continue;
     duplicateIds.add(sessionId);
-    for (const file of paths) errors.push({
-      path: file,
-      code: "DUPLICATE_SESSION_ID",
-      message: `sessionId ${sessionId} 同时出现在 ${paths.length} 个文件中；这些记录已排除，避免重复计数`,
-    });
+    for (const file of paths)
+      errors.push({
+        path: file,
+        code: "DUPLICATE_SESSION_ID",
+        message: `sessionId ${sessionId} 同时出现在 ${paths.length} 个文件中；这些记录已排除，避免重复计数`,
+      });
   }
 
   const usable = parsed.filter(({ record }) => !duplicateIds.has(record.sessionId));
   return {
-    records: usable.map(({ record }) => record)
-      .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt) || left.sessionId.localeCompare(right.sessionId)),
+    records: usable
+      .map(({ record }) => record)
+      .sort(
+        (left, right) =>
+          left.occurredAt.localeCompare(right.occurredAt) ||
+          left.sessionId.localeCompare(right.sessionId),
+      ),
     recordsByPath: Object.fromEntries(usable.map(({ path: file, record }) => [file, record])),
     scannedPaths: files,
     errors,
@@ -178,20 +217,32 @@ export async function scanPracticeRecords(root: string): Promise<PracticeScanRes
   };
 }
 
-export function summarizeVocabulary(records: PracticeRecord[]): Map<string, VocabularyPracticeSummary> {
-  const grouped = new Map<string, Array<{ record: PracticeRecord; assessment: PracticeRecord["vocabularyAssessments"][number] }>>();
+export function summarizeVocabulary(
+  records: PracticeRecord[],
+): Map<string, VocabularyPracticeSummary> {
+  const grouped = new Map<
+    string,
+    Array<{ record: PracticeRecord; assessment: PracticeRecord["vocabularyAssessments"][number] }>
+  >();
   for (const record of records) {
     for (const assessment of record.vocabularyAssessments) {
-      grouped.set(assessment.vocabularyId, [...(grouped.get(assessment.vocabularyId) ?? []), { record, assessment }]);
+      grouped.set(assessment.vocabularyId, [
+        ...(grouped.get(assessment.vocabularyId) ?? []),
+        { record, assessment },
+      ]);
     }
   }
 
   const result = new Map<string, VocabularyPracticeSummary>();
   for (const [vocabularyId, evidence] of grouped) {
-    const ordered = [...evidence].sort((left, right) => left.record.occurredAt.localeCompare(right.record.occurredAt));
-    const positive = ordered.filter(({ record, assessment }) =>
-      record.status === "complete" && assessment.result === "recalled" &&
-      (assessment.evidenceType === "spontaneous" || assessment.evidenceType === "rephrased"),
+    const ordered = [...evidence].sort((left, right) =>
+      left.record.occurredAt.localeCompare(right.record.occurredAt),
+    );
+    const positive = ordered.filter(
+      ({ record, assessment }) =>
+        record.status === "complete" &&
+        assessment.result === "recalled" &&
+        (assessment.evidenceType === "spontaneous" || assessment.evidenceType === "rephrased"),
     );
     const positiveDays = new Set(positive.map(({ record }) => record.occurredAt.slice(0, 10)));
     const latest = ordered.at(-1);
@@ -211,7 +262,12 @@ export function summarizeVocabulary(records: PracticeRecord[]): Map<string, Voca
 }
 
 export function generatedExpressionId(expression: string): string {
-  const slug = expression.normalize("NFKC").trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
+  const slug = expression
+    .normalize("NFKC")
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-|-$/g, "");
   if (!slug) throw new Error("表达不能为空，无法生成稳定 ID");
   return `generated:${slug}`;
 }

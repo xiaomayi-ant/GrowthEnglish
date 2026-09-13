@@ -9,7 +9,7 @@ import {
   type SourceEntry,
 } from "@enpet/core";
 import { type ContentGenerator, DeterministicAnswerEvaluator } from "@enpet/evaluation";
-import { renderPracticeRecord, type PracticeRecord } from "@enpet/practice-records";
+import { type PracticeRecord, renderPracticeRecord } from "@enpet/practice-records";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildApp, type EnPetApp } from "./app.js";
 
@@ -86,8 +86,13 @@ describe("API", () => {
     await mkdir(recordsDir, { recursive: true });
     const sourcePath = path.join(vocabDir, "english-words.md");
     const source = [
-      "# My words", "", "| Word | Phonetic | Meaning |", "| --- | --- | --- |",
-      "| interested in | /ɪntrəstɪd/ | 对……感兴趣 |", "| work with | - | 与……合作 |", "",
+      "# My words",
+      "",
+      "| Word | Phonetic | Meaning |",
+      "| --- | --- | --- |",
+      "| interested in | /ɪntrəstɪd/ | 对……感兴趣 |",
+      "| work with | - | 与……合作 |",
+      "",
     ].join("\n");
     await writeFile(sourcePath, source);
     const record: PracticeRecord = {
@@ -98,24 +103,37 @@ describe("API", () => {
       courseId: "workplace-english",
       unitId: "project-updates",
       focus: ["interested in"],
-      turns: [{
-        prompt: "Tell me about a project.",
-        response: "I am interested on the project.",
-        corrections: [{
-          original: "interested on",
-          corrected: "interested in",
-          explanation: "The preposition is in.",
-          hintLevel: "light",
-          attempts: [{ response: "I am interested in the project.", result: "recalled" }],
-        }],
-      }],
-      vocabularyAssessments: [{
-        vocabularyId: "f001-r002-c01",
-        expression: "interested in",
-        result: "recalled",
-        evidenceType: "spontaneous",
-        evidence: "I am interested in the project.",
-      }],
+      turns: [
+        {
+          prompt: "Tell me about a project.",
+          response: "I am interested on the project.",
+          corrections: [
+            {
+              original: "interested on",
+              corrected: "interested in",
+              explanation: "The preposition is in.",
+              hintLevel: "light",
+              attempts: [{ response: "I am interested in the project.", result: "recalled" }],
+            },
+          ],
+        },
+      ],
+      vocabularyAssessments: [
+        {
+          vocabularyId: "f001-r002-c01",
+          expression: "interested in",
+          result: "recalled",
+          evidenceType: "spontaneous",
+          evidence: "I am interested in the project.",
+        },
+        {
+          vocabularyId: "generated:contribute-to",
+          expression: "contribute to",
+          result: "partial",
+          evidenceType: "rephrased",
+          evidence: "I helped with the model evaluation work.",
+        },
+      ],
       nextFocus: ["interested in"],
     };
     await writeFile(path.join(recordsDir, "session.md"), renderPracticeRecord(record));
@@ -140,11 +158,22 @@ describe("API", () => {
         occurredAt: "2026-09-10T17:30:00-07:00",
       });
       const vocabulary = refreshed.json().vocabulary;
-      expect(vocabulary.find((entry: { id: string }) => entry.id === "f001-r002-c01").practice).toMatchObject({
+      expect(
+        vocabulary.find((entry: { id: string }) => entry.id === "f001-r002-c01").practice,
+      ).toMatchObject({
         status: "needs-practice",
         evidenceCount: 1,
       });
-      expect(vocabulary.find((entry: { word: string }) => entry.word === "work with").practice.status).toBe("unassessed");
+      expect(
+        vocabulary.find((entry: { word: string }) => entry.word === "work with").practice.status,
+      ).toBe("unassessed");
+      expect(
+        vocabulary.find((entry: { id: string }) => entry.id === "generated:contribute-to"),
+      ).toMatchObject({
+        word: "contribute to",
+        origin: "generated",
+        practice: { status: "needs-practice", evidenceCount: 1 },
+      });
       expect(await readFile(sourcePath, "utf8")).toBe(source);
       const second = await scoped.inject({ method: "POST", url: "/api/practice/refresh" });
       expect(second.json().imported).toMatchObject({ inserted: 0, updated: 2 });

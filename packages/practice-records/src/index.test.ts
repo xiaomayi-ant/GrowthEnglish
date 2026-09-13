@@ -1,8 +1,13 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { parsePracticeRecord, scanPracticeRecords, summarizeVocabulary, type PracticeRecord } from "./index.js";
+import {
+  type PracticeRecord,
+  parsePracticeRecord,
+  scanPracticeRecords,
+  summarizeVocabulary,
+} from "./index.js";
 
 const roots: string[] = [];
 const record: PracticeRecord = {
@@ -13,24 +18,30 @@ const record: PracticeRecord = {
   courseId: "workplace-english",
   unitId: "project-updates",
   focus: ["interested in", "work with"],
-  turns: [{
-    prompt: "Tell me about your project.",
-    response: "I am interested on the project.",
-    corrections: [{
-      original: "interested on",
-      corrected: "interested in",
-      explanation: "Use interested in.",
-      hintLevel: "light",
-      attempts: [{ response: "I am interested in the project.", result: "recalled" }],
-    }],
-  }],
-  vocabularyAssessments: [{
-    vocabularyId: "f001-r001-c01",
-    expression: "interested in",
-    result: "recalled",
-    evidenceType: "spontaneous",
-    evidence: "I am interested in the project.",
-  }],
+  turns: [
+    {
+      prompt: "Tell me about your project.",
+      response: "I am interested on the project.",
+      corrections: [
+        {
+          original: "interested on",
+          corrected: "interested in",
+          explanation: "Use interested in.",
+          hintLevel: "light",
+          attempts: [{ response: "I am interested in the project.", result: "recalled" }],
+        },
+      ],
+    },
+  ],
+  vocabularyAssessments: [
+    {
+      vocabularyId: "f001-r001-c01",
+      expression: "interested in",
+      result: "recalled",
+      evidenceType: "spontaneous",
+      evidence: "I am interested in the project.",
+    },
+  ],
   nextFocus: ["interested in"],
 };
 
@@ -51,14 +62,22 @@ describe("practice records", () => {
   });
 
   it("derives mastered only after repeated retrieval on separate days, never from read-aloud", () => {
-    const baseAssessment = record.vocabularyAssessments[0]!;
+    const baseAssessment = record.vocabularyAssessments[0];
+    if (!baseAssessment) throw new Error("fixture assessment is missing");
     const records: PracticeRecord[] = [
       record,
       { ...record, sessionId: "session-b", occurredAt: "2026-09-14T09:00:00-07:00" },
-      { ...record, sessionId: "session-c", occurredAt: "2026-09-15T09:00:00-07:00", vocabularyAssessments: [{ ...baseAssessment, evidenceType: "read-aloud" }] },
+      {
+        ...record,
+        sessionId: "session-c",
+        occurredAt: "2026-09-15T09:00:00-07:00",
+        vocabularyAssessments: [{ ...baseAssessment, evidenceType: "read-aloud" }],
+      },
     ];
     expect(summarizeVocabulary(records).get("f001-r001-c01")?.status).toBe("needs-practice");
-    records[2] = { ...records[2]!, vocabularyAssessments: [baseAssessment] };
+    const lastRecord = records[2];
+    if (!lastRecord) throw new Error("fixture session is missing");
+    records[2] = { ...lastRecord, vocabularyAssessments: [baseAssessment] };
     expect(summarizeVocabulary(records).get("f001-r001-c01")?.status).toBe("mastered");
   });
 
@@ -80,7 +99,10 @@ describe("practice records", () => {
   it("keeps valid records available when another file is invalid", async () => {
     const root = await tempRoot();
     await mkdir(root, { recursive: true });
-    await writeFile(path.join(root, "valid.md"), `<!-- enpet-practice-record:start -->\n\n\`\`\`json\n${JSON.stringify(record)}\n\`\`\`\n\n<!-- enpet-practice-record:end -->`);
+    await writeFile(
+      path.join(root, "valid.md"),
+      `<!-- enpet-practice-record:start -->\n\n\`\`\`json\n${JSON.stringify(record)}\n\`\`\`\n\n<!-- enpet-practice-record:end -->`,
+    );
     await writeFile(path.join(root, "bad.md"), "# broken");
     const result = await scanPracticeRecords(root);
     expect(result.records).toHaveLength(1);

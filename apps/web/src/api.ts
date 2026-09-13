@@ -9,6 +9,11 @@ import type {
   StudySession,
   VocabFormat,
 } from "@enpet/core";
+import type {
+  PracticeFileError,
+  PracticeRecord,
+  VocabularyPracticeSummary,
+} from "@enpet/practice-records";
 
 export interface ImportPreview {
   files: number;
@@ -27,6 +32,24 @@ interface HealthResponse {
   currentFileIndex: number | null;
   vocabDir: string;
   obsidianLink: string;
+  practiceRecordsDir: string;
+}
+
+export interface PracticeVocabularyEntry
+  extends Pick<SourceEntry, "id" | "word" | "meaning" | "phonetic" | "sourcePath"> {
+  origin: "source" | "generated";
+  practice: VocabularyPracticeSummary;
+}
+
+export interface PracticeOverview {
+  records: PracticeRecord[];
+  vocabulary: PracticeVocabularyEntry[];
+  errors: PracticeFileError[];
+  filesRead: number;
+  recordsDir: string;
+  vocabDir: string;
+  readAt: string;
+  lastCleanReadAt: string | null;
 }
 
 interface ApiError {
@@ -114,4 +137,9 @@ export const api = {
       body: JSON.stringify({}),
     }),
   history: () => request<{ sessions: StudySession[] }>("/api/history?limit=30"),
+  practiceOverview: () => request<PracticeOverview>("/api/practice/overview"),
+  refreshPractice: () =>
+    request<PracticeOverview & { imported: ImportSummary }>("/api/practice/refresh", {
+      method: "POST",
+    }),
 };

@@ -23,8 +23,12 @@ import {
   DeterministicAnswerEvaluator,
   DeterministicContentGenerator,
 } from "@enpet/evaluation";
+import {
+  type PracticeRecord,
+  scanPracticeRecords,
+  summarizeVocabulary,
+} from "@enpet/practice-records";
 import { writeDailyReport, writeReviewQueue } from "@enpet/reporting";
-import { scanPracticeRecords, summarizeVocabulary, type PracticeRecord } from "@enpet/practice-records";
 import { StudyService } from "@enpet/scheduler";
 import { loadVocabulary, normalizeFormat, VocabImportError } from "@enpet/vocabulary-import";
 import cors from "@fastify/cors";
@@ -149,23 +153,45 @@ export async function buildApp(
       .map(({ record }) => record)
       .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
     const summaries = summarizeVocabulary(visibleRecords);
+    const sourceVocabulary = database.listSourceEntries().map((entry) => ({
+      id: entry.id,
+      word: entry.word,
+      meaning: entry.meaning,
+      phonetic: entry.phonetic,
+      sourcePath: entry.sourcePath,
+      origin: "source" as const,
+      practice: summaries.get(entry.id) ?? {
+        vocabularyId: entry.id,
+        status: "unassessed" as const,
+        latestAt: null,
+        evidenceCount: 0,
+        evidence: [],
+        expressions: [],
+        sessions: [],
+      },
+    }));
+    const knownIds = new Set(sourceVocabulary.map((entry) => entry.id));
+    const generatedVocabulary = [...summaries.values()]
+      .filter(
+        (summary) =>
+          summary.vocabularyId.startsWith("generated:") && !knownIds.has(summary.vocabularyId),
+      )
+      .map((summary) => ({
+        id: summary.vocabularyId,
+        word: summary.expressions.at(-1) ?? summary.vocabularyId,
+        meaning: "Codex 本轮新表达",
+        phonetic: "—",
+        sourcePath: "Codex 生成表达",
+        origin: "generated" as const,
+        practice: summary,
+      }));
     return {
       records: visibleRecords,
-      vocabulary: database.listSourceEntries().map((entry) => ({
-        ...entry,
-        practice: summaries.get(entry.id) ?? {
-          vocabularyId: entry.id,
-          status: "unassessed" as const,
-          latestAt: null,
-          evidenceCount: 0,
-          evidence: [],
-          expressions: [],
-          sessions: [],
-        },
-      })),
+      vocabulary: [...sourceVocabulary, ...generatedVocabulary],
       errors: scan.errors,
       filesRead: scan.filesRead,
       recordsDir: config.practiceRecordsDir,
+      vocabDir: config.vocabDir,
       readAt: scan.readAt,
       lastCleanReadAt: lastCleanPracticeReadAt,
     };

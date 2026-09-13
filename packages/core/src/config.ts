@@ -255,7 +255,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       DEFAULT_VOCAB_FILE_PREFIX,
     vocabFormat: filteredSaved.vocabFormat,
     databasePath,
-    practiceRecordsDir: readEnv(env, "PRACTICE_RECORDS_DIR") ?? path.join(dataDir, "learning-records"),
+    practiceRecordsDir:
+      readEnv(env, "PRACTICE_RECORDS_DIR") ?? path.join(dataDir, "learning-records"),
     reportsDir: readEnv(env, "REPORTS_DIR") ?? path.join(vaultDir, "study", "reports"),
     reviewQueuePath:
       readEnv(env, "REVIEW_QUEUE_PATH") ?? path.join(vaultDir, "study", "review-queue.md"),
