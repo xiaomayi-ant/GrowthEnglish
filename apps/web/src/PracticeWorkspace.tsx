@@ -133,109 +133,160 @@ function TodayView({
   ];
 
   return (
-    <div className="practice-page">
-      <section className="today-intro">
-        <div>
+    <div className="practice-page today-page">
+      <section className="today-hero">
+        <svg
+          className="waterline-art"
+          viewBox="0 0 1200 360"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path
+            className="waterline-body"
+            d="M-30 194C110 168 145 288 315 246S523 122 695 169s245 125 377 88 167-112 220-96v230H-30Z"
+          />
+          <path
+            className="waterline-crest"
+            d="M-30 194C110 168 145 288 315 246S523 122 695 169s245 125 377 88 167-112 220-96"
+          />
+          <path
+            className="waterline-contour"
+            d="M-20 215C112 194 150 305 319 264S524 144 692 188s246 121 378 83 170-111 223-94"
+          />
+          <path
+            className="waterline-contour waterline-contour-low"
+            d="M-30 239C111 218 151 326 323 286S526 166 692 210s247 119 379 82 171-110 222-94"
+          />
+        </svg>
+        <div className="today-hero-copy">
           <p className="practice-date">
             <CalendarDays aria-hidden="true" />
             {new Intl.DateTimeFormat("zh-CN", { dateStyle: "full" }).format(new Date())}
           </p>
-          <h2>今天练习什么</h2>
-          <p>在 Codex 里继续口语对话；每完成一个练习单元，就把结果保存到本机记录目录。</p>
+          <h2>把表达带进真实对话</h2>
+          <p>从正在学习的词汇出发，在 Codex 语音对话中练习；记录保存在本机。</p>
         </div>
-        <div className="today-count">
-          <strong>{targets.length}</strong>
-          <span>待练表达</span>
+        <div className="today-hero-action">
+          <div className="today-count">
+            <strong>{targets.length}</strong>
+            <span>条待练表达</span>
+          </div>
+          <button type="button" className="primary-button" onClick={() => onCopy(prompt)}>
+            <Clipboard aria-hidden="true" />
+            复制练习指令
+          </button>
         </div>
       </section>
+
+      <dl className="today-progress" aria-label="学习进度">
+        <div>
+          <dt>已完成练习单元</dt>
+          <dd>{overview.records.filter((record) => record.status === "complete").length}</dd>
+        </div>
+        <div>
+          <dt>已掌握表达</dt>
+          <dd>
+            {overview.vocabulary.filter((entry) => entry.practice.status === "mastered").length}
+            <span> / {overview.vocabulary.length}</span>
+          </dd>
+        </div>
+        <div className="progress-latest">
+          <dt>最近一次练习</dt>
+          <dd>{lastRecord ? localDateTime(lastRecord.occurredAt) : "还没有练习记录"}</dd>
+        </div>
+      </dl>
 
       {overview.vocabulary.length === 0 ? (
         <EmptyNotice onSettings={() => window.dispatchEvent(new Event("enpet:open-settings"))} />
       ) : null}
 
-      <section className="practice-section">
-        <div className="practice-section-heading">
-          <div>
-            <h2>建议情景</h2>
-            <p>课程路径是建议；完成情况只根据已保存的练习记录显示。</p>
+      <div className="today-grid">
+        <section className="practice-section focus-section">
+          <div className="practice-section-heading">
+            <div>
+              <h2>今天的重点表达</h2>
+              <p>优先复习薄弱项；已掌握表达退出日常列表，之后可偶尔抽查。</p>
+            </div>
+            <span className="section-count">{targets.length} 条</span>
           </div>
-          {lastRecord ? (
-            <span className="practice-muted">上次练习：{localDateTime(lastRecord.occurredAt)}</span>
-          ) : null}
-        </div>
-        <div className="suggestion-list">
-          {sections.map((section, index) => (
-            <article
-              key={section.id}
-              className={`suggestion-row ${index === 0 ? "suggestion-current" : ""}`}
-            >
-              <span className="suggestion-marker">
-                {index === 0 ? <Sparkles aria-hidden="true" /> : <span />}
-              </span>
-              <div>
-                <strong>{section.title}</strong>
-                <span>{section.detail}</span>
-              </div>
-              <small>
-                {lastRecord?.unitId === section.id
-                  ? "最近练习"
-                  : index === 0
-                    ? "建议先从这里开始"
-                    : "后续单元"}
-              </small>
-            </article>
-          ))}
-        </div>
-      </section>
+          {targets.length ? (
+            <ul className="focus-list">
+              {targets.map((entry, index) => (
+                <li key={entry.id}>
+                  <span className="focus-index">{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <strong>{entry.word}</strong>
+                    <span>{entry.meaning}</span>
+                  </div>
+                  <StatusBadge status={entry.practice.status} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="quiet-empty">
+              当前没有已导入的待练表达。可以先在词库页刷新，或让 Codex 为本轮情景提出新短语。
+            </p>
+          )}
+        </section>
 
-      <section className="practice-section">
-        <div className="practice-section-heading">
-          <div>
-            <h2>今天的重点表达</h2>
-            <p>优先复习薄弱项；已掌握表达退出日常列表，之后可偶尔抽查。</p>
+        <section className="practice-section scenario-section">
+          <div className="practice-section-heading">
+            <div>
+              <h2>建议情景</h2>
+              <p>课程路径是建议；完成情况只根据已保存的练习记录显示。</p>
+            </div>
           </div>
-        </div>
-        {targets.length ? (
-          <ul className="focus-list">
-            {targets.map((entry) => (
-              <li key={entry.id}>
+          <div className="suggestion-list">
+            {sections.map((section, index) => (
+              <article
+                key={section.id}
+                className={`suggestion-row ${index === 0 ? "suggestion-current" : ""}`}
+              >
+                <span className="suggestion-marker">
+                  {index === 0 ? <Sparkles aria-hidden="true" /> : <span />}
+                </span>
                 <div>
-                  <strong>{entry.word}</strong>
-                  <span>{entry.meaning}</span>
+                  <strong>{section.title}</strong>
+                  <span>{section.detail}</span>
                 </div>
-                <StatusBadge status={entry.practice.status} />
-              </li>
+                <small>
+                  {lastRecord?.unitId === section.id
+                    ? "最近练习"
+                    : index === 0
+                      ? "建议先从这里开始"
+                      : "后续单元"}
+                </small>
+              </article>
             ))}
-          </ul>
-        ) : (
-          <p className="quiet-empty">
-            当前没有已导入的待练表达。可以先在词库页刷新，或让 Codex 为本轮情景提出新短语。
-          </p>
-        )}
-      </section>
+          </div>
+        </section>
+      </div>
 
       <section className="practice-section prompt-section">
         <div className="practice-section-heading">
           <div>
             <h2>
               <Volume2 aria-hidden="true" />
-              复制本轮 Codex 练习指令
+              练习指令
             </h2>
-            <p>指令会附上实际目录、待练词和最近一次重点；练习仍在 Codex 中进行。</p>
+            <p>练习仍在 Codex 中进行；指令会附上本机目录、待练词和最近一次重点。</p>
           </div>
         </div>
-        <div className="prompt-preview">
-          <pre>{prompt}</pre>
-        </div>
-        <div className="prompt-actions">
-          <span>
-            记录将写入 <code>{overview.recordsDir}</code>
-          </span>
-          <button type="button" className="primary-button" onClick={() => onCopy(prompt)}>
-            <Clipboard aria-hidden="true" />
-            复制指令
-          </button>
-        </div>
+        <details className="prompt-details">
+          <summary>查看将复制的完整指令</summary>
+          <div className="prompt-preview">
+            <pre>{prompt}</pre>
+          </div>
+          <div className="prompt-actions">
+            <span>
+              记录将写入 <code>{overview.recordsDir}</code>
+            </span>
+            <button type="button" className="secondary-button" onClick={() => onCopy(prompt)}>
+              <Clipboard aria-hidden="true" />
+              复制指令
+            </button>
+          </div>
+        </details>
       </section>
     </div>
   );
@@ -525,8 +576,14 @@ export function PracticeWorkspace({ onOpenCards }: { onOpenCards: () => void }) 
           </nav>
           <div className="workspace-sidebar-footer">
             <span>练习在 Codex 中进行</span>
-            <button type="button" onClick={onOpenCards}>
-              打开词卡复习
+            <button
+              type="button"
+              aria-label="打开词卡复习"
+              title="打开词卡复习"
+              onClick={onOpenCards}
+            >
+              <BookOpen aria-hidden="true" />
+              <span>打开词卡复习</span>
             </button>
           </div>
           <div className="sidebar-status">
@@ -553,13 +610,15 @@ export function PracticeWorkspace({ onOpenCards }: { onOpenCards: () => void }) 
                 className="secondary-button"
                 disabled={refreshing}
                 onClick={() => void syncLocalFiles()}
+                aria-label={refreshing ? "正在刷新本机文件" : "刷新本机文件"}
               >
                 {refreshing ? (
                   <RefreshCw className="spin" aria-hidden="true" />
                 ) : (
                   <RefreshCw aria-hidden="true" />
                 )}
-                {refreshing ? "读取中" : "刷新本机文件"}
+                <span className="refresh-wide-label">{refreshing ? "读取中" : "刷新本机文件"}</span>
+                <span className="refresh-short-label">{refreshing ? "读取中" : "刷新"}</span>
               </button>
               <button
                 type="button"
@@ -611,15 +670,16 @@ export function PracticeWorkspace({ onOpenCards }: { onOpenCards: () => void }) 
           <div className="read-status">
             <span>
               <Clock3 aria-hidden="true" />
-              最近读取：{localDateTime(overview?.readAt ?? null)}
-              {overview?.lastCleanReadAt
-                ? ` · 最近完整读取：${localDateTime(overview.lastCleanReadAt)}`
-                : ""}
+              <span className={`status-dot ${overview?.lastCleanReadAt ? "online" : "offline"}`} />
+              最近同步 {localDateTime(overview?.lastCleanReadAt ?? overview?.readAt ?? null)}
             </span>
-            <small>
-              词库来源：{overview?.vocabDir ?? "读取中"} · 练习记录：
-              {overview?.recordsDir ?? "读取中"}
-            </small>
+            <details className="path-details">
+              <summary>本机路径</summary>
+              <div>
+                <small>生词来源：{overview?.vocabDir ?? "读取中"}</small>
+                <small>练习记录：{overview?.recordsDir ?? "读取中"}</small>
+              </div>
+            </details>
           </div>
           {loading || !overview ? (
             <div className="loading-state">
