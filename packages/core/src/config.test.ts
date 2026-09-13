@@ -23,6 +23,7 @@ describe("loadConfig", () => {
     const config = loadConfig(isolatedEnv);
     expect(config.vocabDir).toBe(vaultDir);
     expect(config.reportsDir).toBe(path.join(vaultDir, "study", "reports"));
+    expect(config.practiceRecordsDir).toBe(path.join(dataDir, "learning-records"));
     expect(config.reviewQueuePath).toBe(path.join(vaultDir, "study", "review-queue.md"));
     expect(loadConfig({}).databasePath).toBe(path.join(dataDir, "enpet.sqlite3"));
   });

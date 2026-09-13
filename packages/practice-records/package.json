@@ -1,13 +1,18 @@
 {
-  "name": "@enpet/database",
+  "name": "@enpet/practice-records",
   "version": "0.4.0",
   "private": true,
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
+    "build": "tsc -b",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@enpet/core": "workspace:*"
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
   }
 }

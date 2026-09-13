@@ -28,6 +28,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "./api";
 import { ImportPreview } from "./ImportPreview";
+import { PracticeWorkspace } from "./PracticeWorkspace";
 import { Settings } from "./Settings";
 
 type View = "learn" | "review" | "history";
@@ -415,7 +416,7 @@ function HistoryView({ sessions, loading }: { sessions: StudySession[]; loading:
   );
 }
 
-export default function App() {
+export function VocabularyCards({ onWorkspace }: { onWorkspace: () => void }) {
   const [view, setView] = useState<View>("learn");
   const [health, setHealth] = useState<Awaited<ReturnType<typeof api.health>> | null>(null);
   const [newSession, setNewSession] = useState<StudySession | null>(null);
@@ -480,7 +481,7 @@ export default function App() {
     }
   }, []);
 
-  const useSampleVocabulary = useCallback(async () => {
+  const createSampleVocabulary = useCallback(async () => {
     setImporting(true);
     setError(null);
     try {
@@ -573,6 +574,9 @@ export default function App() {
                 <h1>{title}</h1>
               </div>
               <div className="topbar-actions">
+                <button type="button" className="secondary-button" onClick={onWorkspace}>
+                  返回学习追踪
+                </button>
                 <button
                   type="button"
                   className="secondary-button"
@@ -636,7 +640,7 @@ export default function App() {
                   vocabDir={health.vocabDir}
                   busy={importing}
                   onImport={() => void startImport()}
-                  onUseSample={() => void useSampleVocabulary()}
+                  onUseSample={() => void createSampleVocabulary()}
                 />
               ) : view === "learn" ? (
                 <SessionView
@@ -694,5 +698,14 @@ export default function App() {
         </div>
       )}
     </>
+  );
+}
+
+export default function App() {
+  const [cardsOpen, setCardsOpen] = useState(false);
+  return cardsOpen ? (
+    <VocabularyCards onWorkspace={() => setCardsOpen(false)} />
+  ) : (
+    <PracticeWorkspace onOpenCards={() => setCardsOpen(true)} />
   );
 }

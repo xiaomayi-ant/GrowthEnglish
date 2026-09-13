@@ -23,6 +23,11 @@ import {
   DeterministicAnswerEvaluator,
   DeterministicContentGenerator,
 } from "@enpet/evaluation";
+import {
+  type PracticeRecord,
+  scanPracticeRecords,
+  summarizeVocabulary,
+} from "@enpet/practice-records";
 import { writeDailyReport, writeReviewQueue } from "@enpet/reporting";
 import { StudyService } from "@enpet/scheduler";
 import { loadVocabulary, normalizeFormat, VocabImportError } from "@enpet/vocabulary-import";
@@ -82,6 +87,8 @@ export interface EnPetApp extends FastifyInstance {
   enPetDatabase: EnPetDatabase;
 }
 
+type CachedPracticeRecord = { path: string; record: PracticeRecord };
+
 export async function buildApp(
   config: AppConfig,
   contentGenerator?: ContentGenerator,
@@ -125,6 +132,70 @@ export async function buildApp(
   }) as unknown as EnPetApp;
   const database = await EnPetDatabase.open(config.databasePath);
   app.enPetDatabase = database;
+  await mkdir(config.practiceRecordsDir, { recursive: true });
+  const lastGoodPracticeRecords = new Map<string, CachedPracticeRecord>();
+  let lastCleanPracticeReadAt: string | null = null;
+
+  async function practiceSnapshot() {
+    const scan = await scanPracticeRecords(config.practiceRecordsDir);
+    const hasRootFailure = scan.errors.some((error) => error.code === "READ_FAILED");
+    if (!hasRootFailure) {
+      const present = new Set(scan.scannedPaths);
+      for (const file of lastGoodPracticeRecords.keys()) {
+        if (!present.has(file)) lastGoodPracticeRecords.delete(file);
+      }
+      for (const [file, record] of Object.entries(scan.recordsByPath)) {
+        lastGoodPracticeRecords.set(file, { path: file, record });
+      }
+      if (scan.errors.length === 0) lastCleanPracticeReadAt = scan.readAt;
+    }
+    const visibleRecords = [...lastGoodPracticeRecords.values()]
+      .map(({ record }) => record)
+      .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
+    const summaries = summarizeVocabulary(visibleRecords);
+    const sourceVocabulary = database.listSourceEntries().map((entry) => ({
+      id: entry.id,
+      word: entry.word,
+      meaning: entry.meaning,
+      phonetic: entry.phonetic,
+      sourcePath: entry.sourcePath,
+      origin: "source" as const,
+      practice: summaries.get(entry.id) ?? {
+        vocabularyId: entry.id,
+        status: "unassessed" as const,
+        latestAt: null,
+        evidenceCount: 0,
+        evidence: [],
+        expressions: [],
+        sessions: [],
+      },
+    }));
+    const knownIds = new Set(sourceVocabulary.map((entry) => entry.id));
+    const generatedVocabulary = [...summaries.values()]
+      .filter(
+        (summary) =>
+          summary.vocabularyId.startsWith("generated:") && !knownIds.has(summary.vocabularyId),
+      )
+      .map((summary) => ({
+        id: summary.vocabularyId,
+        word: summary.expressions.at(-1) ?? summary.vocabularyId,
+        meaning: "Codex 本轮新表达",
+        phonetic: "—",
+        sourcePath: "Codex 生成表达",
+        origin: "generated" as const,
+        practice: summary,
+      }));
+    return {
+      records: visibleRecords,
+      vocabulary: [...sourceVocabulary, ...generatedVocabulary],
+      errors: scan.errors,
+      filesRead: scan.filesRead,
+      recordsDir: config.practiceRecordsDir,
+      vocabDir: config.vocabDir,
+      readAt: scan.readAt,
+      lastCleanReadAt: lastCleanPracticeReadAt,
+    };
+  }
   const taskScheduler = new TaskScheduler(config);
   // config 本身就是活的上限来源：设置页改完就地更新它，下一次会话立刻按新值走
   const studyService = new StudyService(database, generator, evaluator, config);
@@ -172,6 +243,7 @@ export async function buildApp(
     sourceEntries: database.countSourceEntries(),
     currentFileIndex: database.getCurrentFileIndex(),
     vocabDir: config.vocabDir,
+    practiceRecordsDir: config.practiceRecordsDir,
     obsidianLink: obsidianVaultLink(config.vocabDir),
   }));
 
@@ -452,6 +524,13 @@ export async function buildApp(
       .object({ limit: z.coerce.number().int().min(1).max(100).default(30) })
       .parse(request.query);
     return { sessions: database.listRecentSessions(query.limit) };
+  });
+
+  app.get("/api/practice/overview", practiceSnapshot);
+
+  app.post("/api/practice/refresh", async () => {
+    const imported = await importFromVault();
+    return { imported, ...(await practiceSnapshot()) };
   });
 
   const staticRoot = webDistPath();

@@ -291,6 +291,13 @@ export class EnPetDatabase {
     return Number(row.count);
   }
 
+  listSourceEntries(): SourceEntry[] {
+    const rows = this.connection
+      .prepare("SELECT * FROM source_entries WHERE source_active = 1 ORDER BY source_order, id")
+      .all() as SqlRow[];
+    return rows.map(sourceEntryFromRow);
+  }
+
   getCurrentFileIndex(): number | null {
     const row = this.connection
       .prepare(`

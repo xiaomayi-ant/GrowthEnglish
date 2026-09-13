@@ -50,6 +50,7 @@ const configSchema = z.object({
   // 没有值时由导入器自动探测；用户在预览里确认后才落盘固定下来
   vocabFormat: vocabFormatSchema.optional(),
   databasePath: z.string().min(1),
+  practiceRecordsDir: z.string().min(1),
   reportsDir: z.string().min(1),
   reviewQueuePath: z.string().min(1),
   newWordsPerDay: z.number().int().min(1).max(20),
@@ -254,6 +255,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       DEFAULT_VOCAB_FILE_PREFIX,
     vocabFormat: filteredSaved.vocabFormat,
     databasePath,
+    practiceRecordsDir:
+      readEnv(env, "PRACTICE_RECORDS_DIR") ?? path.join(dataDir, "learning-records"),
     reportsDir: readEnv(env, "REPORTS_DIR") ?? path.join(vaultDir, "study", "reports"),
     reviewQueuePath:
       readEnv(env, "REVIEW_QUEUE_PATH") ?? path.join(vaultDir, "study", "review-queue.md"),
@@ -265,6 +268,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
 
 export async function ensureVaultDirectories(config: AppConfig): Promise<void> {
   await mkdir(config.vocabDir, { recursive: true });
+  await mkdir(config.practiceRecordsDir, { recursive: true });
   await mkdir(config.reportsDir, { recursive: true });
   await mkdir(path.dirname(config.reviewQueuePath), { recursive: true });
 

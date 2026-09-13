@@ -51,6 +51,9 @@ importers:
       '@enpet/evaluation':
         specifier: workspace:*
         version: link:../../packages/evaluation
+      '@enpet/practice-records':
+        specifier: workspace:*
+        version: link:../../packages/practice-records
       '@enpet/reporting':
         specifier: workspace:*
         version: link:../../packages/reporting
@@ -82,6 +85,9 @@ importers:
       '@enpet/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@enpet/practice-records':
+        specifier: workspace:*
+        version: link:../../packages/practice-records
       lucide-react:
         specifier: ^0.562.0
         version: 0.562.0(react@19.2.7)
@@ -125,6 +131,19 @@ importers:
       '@enpet/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/practice-records:
+    dependencies:
+      zod:
+        specifier: ^4.1.12
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.13.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/reporting:
     dependencies:

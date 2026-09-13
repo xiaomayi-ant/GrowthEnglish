@@ -1,6 +1,6 @@
 {
   "name": "@enpet/server",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,6 +13,7 @@
     "@enpet/core": "workspace:*",
     "@enpet/database": "workspace:*",
     "@enpet/evaluation": "workspace:*",
+    "@enpet/practice-records": "workspace:*",
     "@enpet/reporting": "workspace:*",
     "@enpet/scheduler": "workspace:*",
     "@enpet/vocabulary-import": "workspace:*",
