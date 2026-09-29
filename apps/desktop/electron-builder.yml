@@ -1,9 +1,10 @@
 appId: com.enpet.app
-productName: EnPet
+productName: Broca
 directories:
   output: release
 files:
   - dist/**
+  - resources/**
   - package.json
 extraResources:
   - from: ../web/dist
@@ -11,6 +12,7 @@ extraResources:
 asar: true
 npmRebuild: false
 mac:
+  icon: resources/broca.icns
   category: public.app-category.education
   identity: null
   target:

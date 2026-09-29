@@ -1,0 +1,56 @@
+export interface Conversation {
+  id: string;
+  draft: string;
+  demo: boolean;
+}
+
+export interface ChatState {
+  version: 1;
+  selectedId: string;
+  conversations: Conversation[];
+}
+
+export function restoreConversations(raw: string | null): ChatState {
+  const empty: ChatState = {
+    version: 1,
+    selectedId: "welcome",
+    conversations: [{ id: "welcome", draft: "", demo: false }],
+  };
+  try {
+    const value = JSON.parse(raw ?? "null");
+    if (value?.version !== 1 || !Array.isArray(value.conversations)) return empty;
+    const conversations: Conversation[] = value.conversations.filter(
+      (item: unknown): item is Conversation => {
+        if (!item || typeof item !== "object") return false;
+        const record = item as Record<string, unknown>;
+        return (
+          typeof record.id === "string" &&
+          record.id.length > 0 &&
+          typeof record.draft === "string" &&
+          typeof record.demo === "boolean"
+        );
+      },
+    );
+    const first = conversations[0];
+    if (!first) return empty;
+    return {
+      version: 1,
+      selectedId: conversations.some((item) => item.id === value.selectedId)
+        ? value.selectedId
+        : first.id,
+      conversations,
+    };
+  } catch {
+    return empty;
+  }
+}
+
+export function createConversation(state: ChatState, id: string): ChatState {
+  const empty = state.conversations.find((item) => !item.demo && !item.draft.trim());
+  if (empty) return { ...state, selectedId: empty.id };
+  return {
+    ...state,
+    selectedId: id,
+    conversations: [{ id, draft: "", demo: false }, ...state.conversations],
+  };
+}

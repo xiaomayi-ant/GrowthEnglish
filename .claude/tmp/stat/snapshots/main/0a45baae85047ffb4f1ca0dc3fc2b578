@@ -1,0 +1,42 @@
+import { describe, expect, it } from "vitest";
+import { createConversation, restoreConversations } from "./chat-state";
+
+describe("conversation drafts", () => {
+  it("restores separate drafts and the selected conversation", () => {
+    const state = {
+      version: 1,
+      selectedId: "second",
+      conversations: [
+        { id: "first", draft: "从 01 开始", demo: false },
+        { id: "second", draft: "帮我练习工作对话", demo: false },
+      ],
+    };
+    expect(restoreConversations(JSON.stringify(state))).toEqual(state);
+  });
+
+  it("recovers safely from corrupt or outdated saved data", () => {
+    for (const raw of [null, "{broken", '{"version":99}', '{"version":1,"conversations":[null]}']) {
+      const state = restoreConversations(raw);
+      expect(state.conversations).toEqual([{ id: "welcome", draft: "", demo: false }]);
+      expect(state.selectedId).toBe("welcome");
+    }
+  });
+
+  it("falls back to a real conversation if the selected ID is stale", () => {
+    expect(restoreConversations(JSON.stringify({
+      version: 1, selectedId: "missing",
+      conversations: [{ id: "saved", draft: "保留这段输入", demo: false }],
+    })).selectedId).toBe("saved");
+  });
+
+  it("keeps a draft when creating a new conversation and reuses an empty one", () => {
+    const first = restoreConversations(JSON.stringify({
+      version: 1, selectedId: "saved",
+      conversations: [{ id: "saved", draft: "上次未发送的内容", demo: false }],
+    }));
+    const next = createConversation(first, "new");
+    expect(next.selectedId).toBe("new");
+    expect(next.conversations.find((item) => item.id === "saved")?.draft).toBe("上次未发送的内容");
+    expect(createConversation(next, "extra")).toEqual(next);
+  });
+});

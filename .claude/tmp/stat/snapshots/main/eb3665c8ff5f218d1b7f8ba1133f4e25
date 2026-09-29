@@ -828,9 +828,9 @@ export function PracticeWorkspace({ onOpenCards }: { onOpenCards: () => void }) 
       <div className="app-shell">
         <aside className="sidebar">
           <div className="brand-block">
-            <img className="brand-mark" src="/broca-mark.svg" alt="" width={38} height={38} />
+            <div className="brand-mark">EN</div>
             <div>
-              <strong>Broca</strong>
+              <strong>EnPet</strong>
               <span>学习追踪</span>
             </div>
           </div>

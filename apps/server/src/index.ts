@@ -8,7 +8,7 @@ const app = await buildApp(config);
 
 try {
   const address = await app.listen({ host: config.host, port: config.port });
-  app.log.info(`EnPet is running at ${address}`);
+  app.log.info(`Broca is running at ${address}`);
 } catch (error) {
   app.log.error(error);
   process.exitCode = 1;

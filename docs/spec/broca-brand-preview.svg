@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="600" viewBox="0 0 1100 600">
+<rect width="1100" height="600" fill="#F7F3EA"/>
+<text x="72" y="64" fill="#756e66" font-family="Arial" font-size="13" letter-spacing="3">BROCA / THE SONGBIRD</text>
+<svg x="105" y="130" width="310" height="310" viewBox="0 0 128 128">
+  <path d="M29 86 17 105 45 97C72 109 98 92 99 66V53C99 37 87 25 72 25 51 25 38 41 38 63L14 57C16 70 20 79 29 86Z" fill="#715747"/>
+  <path d="M96 48 115 58 96 68V48Z" fill="#B99167"/>
+  <path d="M39 72C51 89 76 88 83 67 70 77 54 79 39 72Z" fill="#F7F3EA"/>
+  <circle cx="78" cy="46" r="4" fill="#F7F3EA"/>
+  <path d="M107 35 114 30" stroke="#B99167" stroke-width="5" stroke-linecap="round"/>
+
+</svg>
+<text x="514" y="263" fill="#332f2a" font-family="Georgia" font-size="80">Broca</text>
+<text x="520" y="309" fill="#756e66" font-family="Arial" font-size="18">Find your words.</text>
+<svg x="518" y="368" width="70" height="70" viewBox="0 0 128 128">
+  <rect x="4" y="4" width="120" height="120" rx="27" fill="#F7F3EA"/>
+  <g transform="translate(12 10) scale(.81)">
+  <path d="M29 86 17 105 45 97C72 109 98 92 99 66V53C99 37 87 25 72 25 51 25 38 41 38 63L14 57C16 70 20 79 29 86Z" fill="#715747"/>
+  <path d="M96 48 115 58 96 68V48Z" fill="#B99167"/>
+  <path d="M39 72C51 89 76 88 83 67 70 77 54 79 39 72Z" fill="#F7F3EA"/>
+  <circle cx="78" cy="46" r="4" fill="#F7F3EA"/>
+  <path d="M107 35 114 30" stroke="#B99167" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+</svg>
+<svg x="618" y="381" width="38" height="38" viewBox="0 0 128 128">
+  <path d="M29 86 17 105 45 97C72 109 98 92 99 66V53C99 37 87 25 72 25 51 25 38 41 38 63L14 57C16 70 20 79 29 86Z" fill="#715747"/>
+  <path d="M96 48 115 58 96 68V48Z" fill="#B99167"/>
+  <path d="M39 72C51 89 76 88 83 67 70 77 54 79 39 72Z" fill="#F7F3EA"/>
+  <circle cx="78" cy="46" r="4" fill="#F7F3EA"/>
+  <path d="M107 35 114 30" stroke="#B99167" stroke-width="5" stroke-linecap="round"/>
+
+</svg>
+<svg x="688" y="390" width="20" height="20" viewBox="0 0 128 128">
+  <path d="M29 86 17 105 45 97C72 109 98 92 99 66V53C99 37 87 25 72 25 51 25 38 41 38 63L14 57C16 70 20 79 29 86Z" fill="#715747"/>
+  <path d="M96 48 115 58 96 68V48Z" fill="#B99167"/>
+  <path d="M39 72C51 89 76 88 83 67 70 77 54 79 39 72Z" fill="#F7F3EA"/>
+  <circle cx="78" cy="46" r="4" fill="#F7F3EA"/>
+  <path d="M107 35 114 30" stroke="#B99167" stroke-width="5" stroke-linecap="round"/>
+
+</svg>
+<text x="72" y="552" fill="#756e66" font-family="Arial" font-size="12" letter-spacing="1">IVORY  #F7F3EA</text>
+<text x="340" y="552" fill="#715747" font-family="Arial" font-size="12" letter-spacing="1">WALNUT  #715747</text>
+<text x="625" y="552" fill="#8c6945" font-family="Arial" font-size="12" letter-spacing="1">SAND  #B99167</text>
+</svg>

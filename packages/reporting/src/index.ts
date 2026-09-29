@@ -29,7 +29,7 @@ export function renderReviewQueue(queue: ReviewQueue): string {
     "",
     `更新时间：${queue.today}`,
     "",
-    "> 此页面由 EnPet 从 SQLite 自动生成。修改本文件不会改变复习状态。",
+    "> 此页面由 Broca 从 SQLite 自动生成。修改本文件不会改变复习状态。",
     "",
     renderSection("逾期", queue.overdue),
     "",
